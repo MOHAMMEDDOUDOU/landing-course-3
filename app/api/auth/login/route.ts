@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateToken, verifyPassword, setAuthCookie } from "@/lib/auth"
+import { v4 as uuidv4 } from "uuid"
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,8 +15,15 @@ export async function POST(request: NextRequest) {
 
     // Get user
     const user = await getUserByEmail(email)
-    if (!user || !user.password_hash) {
+    if (!user) {
       return NextResponse.json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" }, { status: 401 })
+    }
+    
+    // Check if user has password set
+    if (!user.password_hash) {
+      return NextResponse.json({ 
+        error: "هذا الحساب مرتبط بحساب Google فقط. يرجى تسجيل الدخول عبر Google أو إضافة كلمة مرور من صفحة التسجيل" 
+      }, { status: 401 })
     }
 
     // Verify password
@@ -24,15 +32,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" }, { status: 401 })
     }
 
-    // Generate JWT token
-    const token = await generateToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-    })
+    // Create session token
+    const sessionToken = uuidv4()
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
-    // Set cookie
-    await setAuthCookie(token)
+    const { createSession, updateUserLoginTime } = await import("@/lib/db")
+    await createSession(user.id, sessionToken, expiresAt)
+    await updateUserLoginTime(user.id)
+
+    // Set cookie with session token
+    await setAuthCookie(sessionToken, true)
 
     return NextResponse.json({
       success: true,

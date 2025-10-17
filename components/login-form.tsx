@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "./auth-provider"
 import { Loader2 } from "lucide-react"
+import { GoogleSignIn } from "./google-sign-in"
 
 export function LoginForm() {
   const router = useRouter()
@@ -72,7 +73,7 @@ export function LoginForm() {
           </Button>
         </form>
 
-        {/* <div className="relative my-6">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border" />
           </div>
@@ -81,7 +82,7 @@ export function LoginForm() {
           </div>
         </div>
 
-        <GoogleSignIn /> */}
+        <GoogleSignIn />
       </CardContent>
     </Card>
   )
