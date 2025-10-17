@@ -56,12 +56,13 @@ export async function createUser(data: {
   name?: string
   googleId?: string
   avatarUrl?: string
+  emailVerified?: boolean
 }) {
   const rows = await executeQuery(
-    `INSERT INTO users (email, password_hash, name, google_id, avatar_url)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO users (email, password_hash, name, google_id, avatar_url, email_verified)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [data.email, data.passwordHash || null, data.name || null, data.googleId || null, data.avatarUrl || null],
+    [data.email, data.passwordHash || null, data.name || null, data.googleId || null, data.avatarUrl || null, data.emailVerified || false],
   )
   return rows[0]
 }
@@ -91,4 +92,69 @@ export async function enrollUserInCourse(userId: number) {
 export async function isUserEnrolled(userId: number) {
   const rows = await executeQuery("SELECT * FROM course_enrollments WHERE user_id = $1 LIMIT 1", [userId])
   return !!rows[0]
+}
+
+// Session management functions
+export async function createSession(userId: number, sessionToken: string, expiresAt: Date) {
+  const rows = await executeQuery(
+    `INSERT INTO user_sessions (user_id, session_token, expires_at)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [userId, sessionToken, expiresAt],
+  )
+  return rows[0]
+}
+
+export async function getSession(sessionToken: string) {
+  const rows = await executeQuery(
+    `SELECT s.*, u.id, u.email, u.name, u.avatar_url, u.google_id
+     FROM user_sessions s
+     JOIN users u ON s.user_id = u.id
+     WHERE s.session_token = $1 AND s.expires_at > CURRENT_TIMESTAMP`,
+    [sessionToken],
+  )
+  return rows[0] || null
+}
+
+export async function updateSessionAccess(sessionToken: string) {
+  await executeQuery(
+    `UPDATE user_sessions 
+     SET last_accessed = CURRENT_TIMESTAMP
+     WHERE session_token = $1`,
+    [sessionToken],
+  )
+}
+
+export async function deleteSession(sessionToken: string) {
+  await executeQuery("DELETE FROM user_sessions WHERE session_token = $1", [sessionToken])
+}
+
+export async function deleteUserSessions(userId: number) {
+  await executeQuery("DELETE FROM user_sessions WHERE user_id = $1", [userId])
+}
+
+export async function cleanupExpiredSessions() {
+  await executeQuery("DELETE FROM user_sessions WHERE expires_at < CURRENT_TIMESTAMP", [])
+}
+
+// Update user login time
+export async function updateUserLoginTime(userId: number) {
+  await executeQuery(
+    `UPDATE users 
+     SET last_login = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1`,
+    [userId],
+  )
+}
+
+// Update user password (for linking accounts)
+export async function updateUserPassword(userId: number, passwordHash: string) {
+  const rows = await executeQuery(
+    `UPDATE users 
+     SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2
+     RETURNING *`,
+    [passwordHash, userId],
+  )
+  return rows[0]
 }

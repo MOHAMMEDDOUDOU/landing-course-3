@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateToken, setAuthCookie } from "@/lib/auth"
+import { v4 as uuidv4 } from "uuid"
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,15 +38,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate JWT token
-    const token = await generateToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-    })
+    // Create session token
+    const sessionToken = uuidv4()
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
-    // Set cookie
-    await setAuthCookie(token)
+    const { createSession, updateUserLoginTime } = await import("@/lib/db")
+    await createSession(user.id, sessionToken, expiresAt)
+    await updateUserLoginTime(user.id)
+
+    // Set cookie with session token
+    await setAuthCookie(sessionToken, true)
 
     return NextResponse.json({
       success: true,

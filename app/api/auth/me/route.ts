@@ -24,6 +24,9 @@ export async function GET() {
           email: user.email,
           name: user.name,
           avatarUrl: user.avatar_url,
+          emailVerified: user.email_verified,
+          isActive: user.is_active,
+          lastLogin: user.last_login,
         },
       })
     } catch (dbError) {
