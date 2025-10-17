@@ -13,7 +13,7 @@ export function SetupBanner() {
   }
 
   return (
-    <div className="border-b border-border/40 bg-muted/50" suppressHydrationWarning>
+    <div className="border-b border-border/40 bg-muted/50">
       <div className="container py-4">
         <Alert>
           <AlertCircle className="h-4 w-4" />

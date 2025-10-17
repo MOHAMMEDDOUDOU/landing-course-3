@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useAuth } from "./auth-provider"
 import { useRouter } from "next/navigation"
+import { ClientOnly } from "./client-only"
 
 declare global {
   interface Window {
@@ -17,11 +18,14 @@ declare global {
   }
 }
 
-export function GoogleSignIn() {
+function GoogleSignInInner() {
   const { loginWithGoogle } = useAuth()
   const router = useRouter()
+  const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   useEffect(() => {
+    if (!hasGoogleClientId) return
+
     // Load Google Sign-In script
     const script = document.createElement("script")
     script.src = "https://accounts.google.com/gsi/client"
@@ -30,9 +34,9 @@ export function GoogleSignIn() {
     document.body.appendChild(script)
 
     script.onload = () => {
-      if (window.google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      if (window.google) {
         window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
           callback: async (response: any) => {
             try {
               await loginWithGoogle(response.credential)
@@ -49,7 +53,7 @@ export function GoogleSignIn() {
           window.google.accounts.id.renderButton(buttonDiv, {
             theme: "outline",
             size: "large",
-            width: 300, // Fixed width instead of percentage
+            width: 300,
             text: "continue_with",
             locale: "ar",
           })
@@ -58,18 +62,28 @@ export function GoogleSignIn() {
     }
 
     return () => {
-      document.body.removeChild(script)
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
     }
-  }, [loginWithGoogle, router])
+  }, [hasGoogleClientId, loginWithGoogle, router])
 
   return (
     <div className="w-full">
-      {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+      {!hasGoogleClientId && (
         <div className="text-sm text-muted-foreground text-center p-4 border rounded-lg">
           Google OAuth غير مُعد. يرجى إضافة NEXT_PUBLIC_GOOGLE_CLIENT_ID إلى متغيرات البيئة.
         </div>
       )}
       <div id="google-signin-button" className="w-full" />
     </div>
+  )
+}
+
+export function GoogleSignIn() {
+  return (
+    <ClientOnly fallback={<div id="google-signin-button" className="w-full" />}>
+      <GoogleSignInInner />
+    </ClientOnly>
   )
 }
