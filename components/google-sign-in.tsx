@@ -30,7 +30,7 @@ export function GoogleSignIn() {
     document.body.appendChild(script)
 
     script.onload = () => {
-      if (window.google) {
+      if (window.google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
           callback: async (response: any) => {
@@ -38,7 +38,8 @@ export function GoogleSignIn() {
               await loginWithGoogle(response.credential)
               router.push("/")
             } catch (error: any) {
-              alert(error.message)
+              console.error("Google login error:", error)
+              alert(error.message || "حدث خطأ أثناء تسجيل الدخول عبر Google")
             }
           },
         })
@@ -48,7 +49,7 @@ export function GoogleSignIn() {
           window.google.accounts.id.renderButton(buttonDiv, {
             theme: "outline",
             size: "large",
-            width: "100%",
+            width: 300, // Fixed width instead of percentage
             text: "continue_with",
             locale: "ar",
           })
@@ -61,5 +62,14 @@ export function GoogleSignIn() {
     }
   }, [loginWithGoogle, router])
 
-  return <div id="google-signin-button" className="w-full" />
+  return (
+    <div className="w-full">
+      {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+        <div className="text-sm text-muted-foreground text-center p-4 border rounded-lg">
+          Google OAuth غير مُعد. يرجى إضافة NEXT_PUBLIC_GOOGLE_CLIENT_ID إلى متغيرات البيئة.
+        </div>
+      )}
+      <div id="google-signin-button" className="w-full" />
+    </div>
+  )
 }

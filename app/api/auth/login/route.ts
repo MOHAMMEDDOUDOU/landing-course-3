@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateToken, verifyPassword, setAuthCookie } from "@/lib/auth"
-import { v4 as uuidv4 } from "uuid"
+import { randomUUID } from "crypto"
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session token
-    const sessionToken = uuidv4()
+    const sessionToken = randomUUID()
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
     const { createSession, updateUserLoginTime } = await import("@/lib/db")
