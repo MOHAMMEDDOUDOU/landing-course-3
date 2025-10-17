@@ -1,6 +1,7 @@
 import { RegisterForm } from "@/components/register-form"
 import Link from "next/link"
 import { Sparkles } from "lucide-react"
+import { EnvDebug } from "@/components/env-debug"
 
 export default function RegisterPage() {
   return (
@@ -29,6 +30,7 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+      <EnvDebug />
     </div>
   )
 }

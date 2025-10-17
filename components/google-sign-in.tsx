@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useAuth } from "./auth-provider"
 import { useRouter } from "next/navigation"
 import { ClientOnly } from "./client-only"
+import { GoogleOAuthStatus } from "./google-oauth-status"
 
 declare global {
   interface Window {
@@ -21,7 +22,8 @@ declare global {
 function GoogleSignInInner() {
   const { loginWithGoogle } = useAuth()
   const router = useRouter()
-  const hasGoogleClientId = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+  const hasGoogleClientId = !!googleClientId && googleClientId !== 'your_google_client_id_here' && googleClientId.length > 10
 
   useEffect(() => {
     if (!hasGoogleClientId) return
@@ -36,7 +38,7 @@ function GoogleSignInInner() {
     script.onload = () => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+          client_id: googleClientId!,
           callback: async (response: any) => {
             try {
               await loginWithGoogle(response.credential)
@@ -70,11 +72,7 @@ function GoogleSignInInner() {
 
   return (
     <div className="w-full">
-      {!hasGoogleClientId && (
-        <div className="text-sm text-muted-foreground text-center p-4 border rounded-lg">
-          Google OAuth غير مُعد. يرجى إضافة NEXT_PUBLIC_GOOGLE_CLIENT_ID إلى متغيرات البيئة.
-        </div>
-      )}
+      <GoogleOAuthStatus />
       <div id="google-signin-button" className="w-full" />
     </div>
   )
