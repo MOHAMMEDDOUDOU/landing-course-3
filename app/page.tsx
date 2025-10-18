@@ -8,7 +8,7 @@ import { SetupBanner } from "@/components/setup-banner"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       <SetupBanner />
       <Header />
       <main>

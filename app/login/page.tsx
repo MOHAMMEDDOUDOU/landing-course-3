@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react"
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background" suppressHydrationWarning>
       <div className="container flex min-h-screen flex-col items-center justify-center py-12">
         <Link href="/" className="mb-8 flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateToken, hashPassword, setAuthCookie } from "@/lib/auth"
+import { randomUUID } from "crypto"
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,12 +15,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }, { status: 400 })
     }
 
-    const { createUser, getUserByEmail } = await import("@/lib/db")
+    const { createUser, getUserByEmail, updateUserPassword } = await import("@/lib/db")
 
     // Check if user already exists
     const existingUser = await getUserByEmail(email)
     if (existingUser) {
-      return NextResponse.json({ error: "البريد الإلكتروني مستخدم بالفعل" }, { status: 400 })
+      // If user exists but has no password (Google-only account), add password
+      if (!existingUser.password_hash) {
+        const passwordHash = await hashPassword(password)
+        await updateUserPassword(existingUser.id, passwordHash)
+        
+        // Create session token
+        const sessionToken = uuidv4()
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+        
+        const { createSession, updateUserLoginTime } = await import("@/lib/db")
+        await createSession(existingUser.id, sessionToken, expiresAt)
+        await updateUserLoginTime(existingUser.id)
+        
+        // Set cookie with session token
+        await setAuthCookie(sessionToken, true)
+        
+        return NextResponse.json({
+          success: true,
+          user: {
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.name,
+            avatarUrl: existingUser.avatar_url,
+          },
+        })
+      } else {
+        // User already has password, cannot register again
+        return NextResponse.json({ error: "البريد الإلكتروني مستخدم بالفعل" }, { status: 400 })
+      }
     }
 
     // Hash password and create user
@@ -28,17 +57,19 @@ export async function POST(request: NextRequest) {
       email,
       passwordHash,
       name,
+      emailVerified: false, // Email verification can be added later
     })
 
-    // Generate JWT token
-    const token = await generateToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-    })
+    // Create session token
+    const sessionToken = randomUUID()
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
-    // Set cookie
-    await setAuthCookie(token)
+    const { createSession, updateUserLoginTime } = await import("@/lib/db")
+    await createSession(user.id, sessionToken, expiresAt)
+    await updateUserLoginTime(user.id)
+
+    // Set cookie with session token
+    await setAuthCookie(sessionToken, true)
 
     return NextResponse.json({
       success: true,
