@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         await updateUserPassword(existingUser.id, passwordHash)
         
         // Create session token
-        const sessionToken = uuidv4()
+        const sessionToken = randomUUID()
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
         
         const { createSession, updateUserLoginTime } = await import("@/lib/db")
